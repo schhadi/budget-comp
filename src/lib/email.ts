@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { appUrl } from "./env";
 
-const FROM = process.env.EMAIL_FROM || "Who Can Spend the Less? <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM || "Skint <onboarding@resend.dev>";
 
 function client() {
   const key = process.env.RESEND_API_KEY;
@@ -10,13 +10,16 @@ function client() {
 }
 
 function layout(title: string, bodyHtml: string, cta?: { label: string; href: string }) {
-  return `<!doctype html><html><body style="margin:0;background:#0b0b12;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#f5f5fa">
+  // Paper, ink and cobalt, matching the app. Plain text wordmark: most mail clients strip SVG.
+  return `<!doctype html><html><body style="margin:0;background:#f5f3ee;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16181d">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#a78bfa;margin-bottom:12px">Who Can Spend the Less?</div>
-    <h1 style="font-size:24px;line-height:1.2;margin:0 0 16px">${title}</h1>
-    <div style="font-size:16px;line-height:1.5;color:#d4d4e4">${bodyHtml}</div>
-    ${cta ? `<a href="${cta.href}" style="display:inline-block;margin-top:24px;background:#7c3aed;color:#fff;text-decoration:none;padding:12px 20px;border-radius:999px;font-weight:600">${cta.label}</a>` : ""}
-    <p style="margin-top:32px;font-size:12px;color:#6b6b80">You get these emails because you're in a league. Turn them off in <a href="${appUrl()}/settings" style="color:#a78bfa">settings</a>.</p>
+    <div style="background:#ffffff;border:1px solid #e3e0d8;border-radius:16px;padding:28px 24px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b6f77;margin-bottom:14px">Skint</div>
+      <h1 style="font-size:24px;line-height:1.2;letter-spacing:-0.02em;margin:0 0 14px">${title}</h1>
+      <div style="font-size:16px;line-height:1.5;color:#4b4f57">${bodyHtml}</div>
+      ${cta ? `<a href="${cta.href}" style="display:inline-block;margin-top:24px;background:#2451b3;color:#ffffff;text-decoration:none;padding:13px 20px;border-radius:12px;font-weight:600">${cta.label}</a>` : ""}
+    </div>
+    <p style="margin:20px 4px 0;font-size:12px;line-height:1.5;color:#6b6f77">You get these emails because you're in a league. Turn them off in <a href="${appUrl()}/settings" style="color:#2451b3">settings</a>. Lowest wins.</p>
   </div></body></html>`;
 }
 
@@ -35,7 +38,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
 }
 
 export async function sendDailyReminder(to: string, firstName: string, leagues: { id: string; name: string; emoji: string }[]) {
-  const list = leagues.map((l) => `<li><a href="${appUrl()}/leagues/${l.id}/upload" style="color:#a78bfa">${l.emoji} ${l.name}</a></li>`).join("");
+  const list = leagues.map((l) => `<li><a href="${appUrl()}/leagues/${l.id}/upload" style="color:#2451b3">${l.emoji} ${l.name}</a></li>`).join("");
   const html = layout(
     `${firstName}, you haven't logged today 👀`,
     `<p>No upload yet today in ${leagues.length === 1 ? "your league" : `${leagues.length} leagues`}. Screenshot what you spent, or tap "No spend today" if you were good.</p><ul>${list}</ul>`,

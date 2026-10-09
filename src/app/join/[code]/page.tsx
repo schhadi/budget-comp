@@ -6,6 +6,7 @@ import { leagues } from "@/db/schema";
 import { joinByCode } from "@/actions/leagues";
 import { GoogleButton } from "@/components/GoogleButton";
 import { Icon } from "@/components/Icon";
+import { Lockup } from "@/components/Logo";
 
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -34,10 +35,8 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
       className="rise flex flex-1 flex-col px-7"
       style={{ paddingTop: "calc(env(safe-area-inset-top) + 72px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)" }}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent text-accent-ink">
-        <Icon name="group_add" size={28} fill />
-      </div>
-      <div className="eyebrow mt-7">You&apos;re invited</div>
+      <Lockup height={32} className="text-ink" />
+      <div className="eyebrow mt-8">You&apos;re invited</div>
       <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold tracking-[-0.025em] text-pretty">Join {league.name}</h1>
       <p className="mt-3.5 text-base leading-normal text-ink2">Sign in with Google and you&apos;re in. Lowest total wins.</p>
       <div className="min-h-10 flex-1" />

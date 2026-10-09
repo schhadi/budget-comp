@@ -42,3 +42,6 @@ next-env.d.ts
 
 # keep the example env
 !.env.example
+
+# Fonts and scratch renders fetched by brand/generate.py
+brand/.fonts/

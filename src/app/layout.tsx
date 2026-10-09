@@ -6,8 +6,10 @@ const instrumentSans = Instrument_Sans({ variable: "--font-instrument-sans", sub
 const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
-  title: { default: "Who Can Spend the Less?", template: "%s · Who Can Spend the Less?" },
-  description: "A leaderboard for friends competing to spend the least. Upload screenshots, let AI read them, win bragging rights.",
+  title: { default: "Skint", template: "%s · Skint" },
+  description: "Skint is a league for friends who compete to spend the least. Screenshot what you spend, confirm what the AI read, lowest total wins.",
+  applicationName: "Skint",
+  appleWebApp: { title: "Skint", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {

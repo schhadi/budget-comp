@@ -13,6 +13,7 @@
   --accent: #2451b3;
   --accent-ink: #ffffff;
   --accent-soft: #e6ecf8;
+  --brass: #e0ad3a;
   --good: #1e7a4c;
   --good-soft: #e1f2e8;
   --bad: #b2362a;
@@ -38,6 +39,7 @@
     --accent: #86a4ee;
     --accent-ink: #0e1a3a;
     --accent-soft: #1c2742;
+    --brass: #e0ad3a;
     --good: #67c58f;
     --good-soft: #17311f;
     --bad: #f0897d;
@@ -63,6 +65,7 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-brass: var(--brass);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-bad: var(--bad);

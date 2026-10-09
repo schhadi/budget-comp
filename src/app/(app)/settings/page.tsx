@@ -49,7 +49,7 @@ export default async function SettingsPage() {
           Sign out
         </button>
       </form>
-      <div className="p-4 text-center text-xs text-muted">Who Can Spend the Less? · v0.1</div>
+      <div className="p-4 text-center text-xs text-muted">Skint · v0.1</div>
     </div>
   );
 }
