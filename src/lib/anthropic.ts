@@ -152,3 +152,44 @@ export async function generateRecapSlides(stats: unknown): Promise<RecapSlides> 
   }
   return response.parsed_output;
 }
+
+// ---------------- Merchant categorisation (Apple Pay shortcut) ----------------
+
+export const MerchantGuessSchema = z.object({
+  merchant: z.string().describe("Short, human-friendly merchant name, e.g. 'Tesco Express' from 'TESCO STORES 3245'"),
+  category: z.enum(CATEGORY_IDS),
+  confidence: z.number().describe("0 to 1, how sure you are about the category"),
+});
+
+export type MerchantGuess = z.infer<typeof MerchantGuessSchema>;
+
+const CATEGORISE_SYSTEM = `You tidy up card-payment merchant names and pick a spending category for a UK university student's spending tracker.
+
+- merchant: strip store numbers, card-processor prefixes (SUMUP *, SQ *, PAYPAL *), city codes and ALL CAPS. Keep the brand recognisable.
+- category: pick the closest from the allowed list. Supermarkets are groceries; cafes, Pret, Greggs, vending are coffee; restaurants, Deliveroo, Uber Eats, takeaways are food_out; pubs, bars, clubs are drinks_nights_out; TfL, trains, buses, Uber rides are transport; Netflix, Spotify, gym memberships are subscriptions; rent, council tax, energy, phone bill are rent_bills; pharmacies and gyms are health; bookshops and university fees are books_uni; clothes and general retail are shopping; otherwise other.
+- confidence below 0.6 if the name is ambiguous or you are guessing.`;
+
+/** One short call per Apple Pay tap whose merchant the keyword rules didn't recognise. */
+export async function categoriseMerchant(input: { merchant: string; card?: string | null }): Promise<MerchantGuess> {
+  const response = await client.beta.messages.parse({
+    model: PARSER_MODEL,
+    max_tokens: 2000,
+    ...fallbackParams(PARSER_MODEL),
+    system: CATEGORISE_SYSTEM,
+    output_config: {
+      effort: "low",
+      format: zodOutputFormat(MerchantGuessSchema),
+    },
+    messages: [
+      {
+        role: "user",
+        content: `Merchant as reported by Apple Pay: ${JSON.stringify(input.merchant)}${input.card ? `\nCard used: ${JSON.stringify(input.card)}` : ""}`,
+      },
+    ],
+  });
+
+  if (response.stop_reason === "refusal" || !response.parsed_output) {
+    throw new Error("Could not categorise this merchant.");
+  }
+  return response.parsed_output;
+}

@@ -109,6 +109,7 @@ export async function addManualTransaction(leagueId: string, _prev: ActionResult
     occurredOn,
     status: "confirmed",
     confirmedAt: new Date(),
+    source: "manual",
     notes: "Entered manually (no screenshot)",
   });
   await logDay(leagueId, user.id, occurredOn, "spend");
