@@ -163,6 +163,8 @@ export const screenshots = pgTable(
 );
 
 export type TransactionStatus = "pending" | "confirmed" | "rejected";
+/** Where an entry came from. Null on rows created before this column existed. */
+export type TransactionSource = "screenshot" | "manual" | "apple_pay";
 
 export const transactions = pgTable(
   "transaction",
@@ -187,6 +189,7 @@ export const transactions = pgTable(
     occurredOn: date("occurred_on", { mode: "string" }).notNull(),
     status: text("status").$type<TransactionStatus>().notNull().default("pending"),
     confidence: real("confidence"),
+    source: text("source").$type<TransactionSource>(),
     notes: text("notes"),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     confirmedAt: timestamp("confirmed_at", { mode: "date" }),
@@ -281,9 +284,32 @@ export const badges = pgTable(
   ],
 );
 
+/**
+ * Personal API keys. Used by the iPhone Shortcut that logs Apple Pay payments.
+ * Only a SHA-256 hash is stored; the plaintext key is shown once when generated.
+ */
+export const apiKeys = pgTable(
+  "api_key",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    keyHash: text("key_hash").notNull().unique(),
+    hint: text("hint").notNull(),
+    label: text("label").notNull().default("Apple Pay shortcut"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { mode: "date" }),
+  },
+  (t) => [uniqueIndex("api_key_user_idx").on(t.userId)],
+);
+
 export type User = typeof users.$inferSelect;
 export type League = typeof leagues.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Screenshot = typeof screenshots.$inferSelect;
 export type Recap = typeof recaps.$inferSelect;
 export type Badge = typeof badges.$inferSelect;
+export type ApiKey = typeof apiKeys.$inferSelect;

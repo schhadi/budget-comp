@@ -59,6 +59,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             occurredOn: tx.occurredOn,
             confidence: tx.confidence,
             notes: tx.notes,
+            source: tx.source,
             screenshotUrl: shotUrl,
           }}
         />

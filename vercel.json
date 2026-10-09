@@ -1,6 +1,13 @@
 {
+  "buildCommand": "npm run db:migrate && npm run build",
   "crons": [
-    { "path": "/api/cron/daily-reminder", "schedule": "0 18 * * *" },
-    { "path": "/api/cron/recaps", "schedule": "0 7 * * *" }
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/recaps",
+      "schedule": "0 7 * * *"
+    }
   ]
 }

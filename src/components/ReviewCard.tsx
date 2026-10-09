@@ -16,6 +16,7 @@ export interface ReviewTx {
   occurredOn: string;
   confidence: number | null;
   notes: string | null;
+  source?: "screenshot" | "manual" | "apple_pay" | null;
   screenshotUrl: string | null;
 }
 
@@ -28,6 +29,8 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
   const [showImage, setShowImage] = useState(false);
   const confidence = Math.round((tx.confidence ?? 0) * 100);
   const low = (tx.confidence ?? 1) < 0.6;
+  const applePay = tx.source === "apple_pay";
+  const amountMissing = applePay && tx.amountMinor <= 0;
   const busy = pending || rejecting;
 
   if (state?.ok) {
@@ -52,14 +55,33 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={tx.screenshotUrl} alt="" className="h-full w-full object-cover" />
           </button>
+        ) : applePay ? (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface">
+            <Icon name="contactless" size={30} className="text-ink2" />
+          </div>
         ) : (
           <div className="hatch flex h-16 w-16 shrink-0 items-end justify-center rounded-[10px] pb-1 font-mono text-[9px] text-muted">no image</div>
         )}
         <div className="min-w-0 flex-1">
-          <span className={`inline-flex h-6 items-center gap-[5px] rounded-md px-2 text-xs font-semibold ${low ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent"}`}>
-            <Icon name={low ? "warning" : "auto_awesome"} size={14} fill />
-            {low ? "Check this" : "AI read"} · {confidence}%
-          </span>
+          {applePay ? (
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex h-6 items-center gap-[5px] rounded-md bg-accent-soft px-2 text-xs font-semibold text-accent">
+                <Icon name="contactless" size={14} />
+                Apple Pay
+              </span>
+              {(amountMissing || low) && (
+                <span className="inline-flex h-6 items-center gap-[5px] rounded-md bg-warn-soft px-2 text-xs font-semibold text-warn">
+                  <Icon name="warning" size={14} fill />
+                  {amountMissing ? "Add the amount" : "Check the category"}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className={`inline-flex h-6 items-center gap-[5px] rounded-md px-2 text-xs font-semibold ${low ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent"}`}>
+              <Icon name={low ? "warning" : "auto_awesome"} size={14} fill />
+              {low ? "Check this" : "AI read"} · {confidence}%
+            </span>
+          )}
           {tx.notes && <div className="mt-1.5 text-xs text-muted">{tx.notes}</div>}
         </div>
       </div>
@@ -72,7 +94,7 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
       <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
           <label className="label" htmlFor={`amount-${tx.id}`}>Amount</label>
-          <input id={`amount-${tx.id}`} name="amount" inputMode="decimal" className="field !rounded-[10px] !px-3 font-mono !text-lg" defaultValue={fromMinor(tx.amountMinor, tx.currency).toFixed(2)} required />
+          <input id={`amount-${tx.id}`} name="amount" inputMode="decimal" className="field !rounded-[10px] !px-3 font-mono !text-lg" defaultValue={amountMissing ? "" : fromMinor(tx.amountMinor, tx.currency).toFixed(2)} placeholder="0.00" required />
         </div>
         <div>
           <label className="label" htmlFor={`currency-${tx.id}`}>Currency</label>
