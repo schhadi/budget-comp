@@ -194,12 +194,12 @@ NEXT_PUBLIC_APP_URL
 
 ---
 
-## 8. Open decisions
+## 8. Decisions (confirmed)
 
-These are the things worth confirming before building. Defaults are in bold.
-
-1. Sign-in: **magic link email** vs Google.
-2. Default period: **weekly** vs monthly.
-3. Do rent and bills count? **No by default** (fun-money leaderboard), toggle per league.
-4. Parser model: **Opus 5.5** for accuracy, or Haiku 5.5 to be as cheap as possible.
-5. Should the league be visible only to members (**yes**) or have a public read-only page?
+1. Sign-in: **Google**.
+2. Friends system: add by email, accept requests, then add friends to leagues. Invite link as a backup.
+3. Daily upload required by default, with an evening email reminder and an optional missed-day penalty.
+4. Wrapped recaps every week (Monday) and every month (1st), emailed to everyone.
+5. League parameters: window (weekly/monthly), currency, timezone, excluded categories, daily upload, penalty, budget target, stake, challenges, which recaps.
+6. Parser model: Opus 5.5 by default, Haiku 5.5 via `PARSER_MODEL` to go cheaper.
+7. Leagues are visible to members only.
