@@ -51,7 +51,11 @@ Built with Next.js (App Router), Neon Postgres + Drizzle, Auth.js (Google), Verc
 
 ## Deploy to Vercel
 
-Import the repo in Vercel, add every variable from `.env.example` in Project → Settings → Environment Variables, and deploy. `vercel.json` registers two cron jobs:
+Import the repo in Vercel, add every variable from `.env.example` in Project → Settings → Environment Variables, and deploy.
+
+`vercel.json` sets the build command to `npm run db:migrate && npm run build`, so any new migration in `drizzle/` is applied to the database before each deployment builds. Two things that relies on: `DATABASE_URL` (or `DATABASE_URL_UNPOOLED`, which the Neon integration provides and migrations prefer) must be available to the Production and Preview environments, and devDependencies must be installed during the build, which is Vercel's default as long as you don't set `NODE_ENV=production` as an environment variable. Local `npm run build` is unaffected.
+
+`vercel.json` also registers two cron jobs:
 
 | Cron | When (UTC) | What |
 | --- | --- | --- |

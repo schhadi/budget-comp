@@ -10,6 +10,7 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://placeholder",
+    // Migrations should use Neon's direct connection when the Vercel integration provides one.
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "postgres://placeholder",
   },
 });
