@@ -4,12 +4,14 @@ import { db } from "@/db";
 import { challenges, screenshots, transactions, users } from "@/db/schema";
 import { markNoSpendDay } from "@/actions/transactions";
 import { Avatar } from "@/components/Avatar";
-import { ChallengeForm } from "@/components/ChallengeForm";
+import { EntryRow } from "@/components/EntryRow";
 import { Flash } from "@/components/Flash";
+import { Icon } from "@/components/Icon";
 import { LeagueHeader } from "@/components/LeagueHeader";
+import { SectionHead } from "@/components/PageHeader";
 import { SubmitButton } from "@/components/SubmitButton";
 import { categoryInfo } from "@/lib/categories";
-import { currentPeriod, daysBetween, formatDay, formatPeriod, todayIn } from "@/lib/dates";
+import { currentPeriod, daysBetween, formatPeriodShort, formatRelativeDay, todayIn } from "@/lib/dates";
 import { requireMember } from "@/lib/league-access";
 import { formatMoney } from "@/lib/money";
 import { computeLeagueStats } from "@/lib/stats";
@@ -25,7 +27,7 @@ export default async function LeagueBoard({ params, searchParams }: { params: Pr
   const daysLeft = daysBetween(today, period.end);
 
   const recent = await db
-    .select({ tx: transactions, user: { name: users.name, image: users.image }, shotUrl: screenshots.blobUrl })
+    .select({ tx: transactions, user: { name: users.name }, shotUrl: screenshots.blobUrl })
     .from(transactions)
     .innerJoin(users, eq(users.id, transactions.userId))
     .leftJoin(screenshots, eq(screenshots.id, transactions.screenshotId))
@@ -42,101 +44,135 @@ export default async function LeagueBoard({ params, searchParams }: { params: Pr
     : [];
 
   const excluded = new Set(league.excludedCategories ?? []);
+  const pending = me?.pendingCount ?? 0;
+  const footnote = [
+    league.budgetTargetMinor ? `Bars show progress towards the ${formatMoney(league.budgetTargetMinor, league.currency)} budget target.` : null,
+    excluded.size > 0 ? `${[...excluded].map((c) => categoryInfo(c).label).join(", ")} ${excluded.size === 1 ? "is" : "are"} not counted.` : null,
+  ].filter(Boolean);
 
   return (
-    <div className="space-y-6">
-      <LeagueHeader league={league} active="" isOwner={membership.role === "owner"} pendingCount={me?.pendingCount} />
+    <div className="rise flex flex-col">
+      <LeagueHeader league={league} user={user} showSettings={membership.role === "owner"} />
       {error === "owner-only" && <Flash kind="error">Only the league owner can do that.</Flash>}
 
-      <div className="card p-4 flex items-center justify-between gap-3">
+      <div className="flex items-end justify-between gap-3 px-4 pt-4 pb-1">
         <div>
-          <div className="text-xs text-muted uppercase tracking-wide">{league.window === "weekly" ? "This week" : "This month"}</div>
-          <div className="font-semibold">{formatPeriod(period)}</div>
-          <div className="text-xs text-muted mt-0.5">{daysLeft === 0 ? "Last day!" : `${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`}{league.stake ? ` · 🎯 ${league.stake}` : ""}</div>
+          <div className="eyebrow">{league.window === "weekly" ? "This week" : "This month"}</div>
+          <div className="mt-0.5 text-[26px] leading-[1.15] font-semibold tracking-[-0.02em]">{formatPeriodShort(period)}</div>
         </div>
-        <div className="flex flex-col gap-2 items-end">
-          <Link href={`/leagues/${league.id}/upload`} className="btn btn-primary btn-sm">📸 Upload</Link>
-          {!me?.loggedToday && (
-            <form action={markNoSpendDay.bind(null, league.id, undefined)}>
-              <SubmitButton className="btn btn-secondary btn-sm" pendingText="…">🧘 No spend today</SubmitButton>
-            </form>
-          )}
-          {me?.loggedToday && <span className="text-xs text-good">Logged today ✓</span>}
+        <div className="text-right">
+          <div className="font-mono text-[26px] leading-[1.15] font-medium">{daysLeft}</div>
+          <div className="text-xs text-muted">{daysLeft === 0 ? "last day" : daysLeft === 1 ? "day left" : "days left"}</div>
         </div>
       </div>
+      <div className="flex items-center gap-1.5 border-b border-line px-4 pt-1.5 pb-4 text-[13px] text-ink2">
+        {league.stake ? (
+          <>
+            <Icon name="emoji_events" size={16} className="text-muted" />
+            {league.stake}
+          </>
+        ) : (
+          <span className="text-muted">Lowest total wins.</span>
+        )}
+      </div>
 
-      {me && me.pendingCount > 0 && (
-        <Link href={`/leagues/${league.id}/review`} className="block">
-          <Flash kind="info">You have {me.pendingCount} {me.pendingCount === 1 ? "entry" : "entries"} to confirm before they count →</Flash>
+      {pending > 0 && (
+        <Link href={`/leagues/${league.id}/review`} className="flex min-h-14 items-center gap-3 border-b border-line bg-accent-soft px-4 py-3">
+          <Icon name="fact_check" fill className="text-accent" />
+          <span className="flex-1 text-[15px]">
+            <strong className="font-semibold">
+              {pending} {pending === 1 ? "entry" : "entries"}
+            </strong>{" "}
+            waiting for you to confirm
+          </span>
+          <Icon name="chevron_right" className="text-accent" />
         </Link>
       )}
+      {me && !me.loggedToday && (
+        <div className="flex min-h-14 items-center gap-3 border-b border-line py-2 pr-2 pl-4">
+          <Icon name="schedule" className="text-warn" />
+          <span className="flex-1 text-[15px]">Nothing logged today</span>
+          <form action={markNoSpendDay.bind(null, league.id, undefined)}>
+            <SubmitButton className="btn-outline" pendingText="Saving…">
+              No spend today
+            </SubmitButton>
+          </form>
+        </div>
+      )}
+      {me?.loggedToday && (
+        <div className="flex min-h-14 items-center gap-3 border-b border-line px-4 py-3 text-good">
+          <Icon name="check_circle" fill />
+          <span className="flex-1 text-[15px] font-medium">Logged today</span>
+        </div>
+      )}
 
-      <section className="space-y-2">
-        <h2 className="font-semibold">Leaderboard <span className="text-muted font-normal text-sm">· lowest wins</span></h2>
-        <ol className="space-y-2">
-          {stats.members.map((m) => {
-            const isMe = m.userId === user.id;
-            const pct = league.budgetTargetMinor ? Math.min(100, Math.round((m.totalMinor / league.budgetTargetMinor) * 100)) : null;
-            return (
-              <li key={m.userId} className={`card p-3 ${isMe ? "border-accent/60" : ""}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${m.rank <= 3 ? `rank-${m.rank}` : "bg-card-2 text-muted"}`}>{m.rank}</span>
-                  <Avatar name={m.name} image={m.image} />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{m.name}{isMe && <span className="text-muted text-xs"> (you)</span>}</div>
-                    <div className="text-xs text-muted flex gap-2 flex-wrap">
-                      <span>{m.txCount} {m.txCount === 1 ? "entry" : "entries"}</span>
-                      <span>· {m.uploadDays}/{stats.daysElapsed} days logged</span>
-                      {m.currentStreak >= 3 && <span>· 🔥 {m.currentStreak}</span>}
-                      {m.penaltyMinor > 0 && <span className="text-bad">· +{formatMoney(m.penaltyMinor, league.currency)} penalty</span>}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono font-semibold">{formatMoney(m.totalMinor, league.currency)}</div>
-                    {m.topCategory && <div className="text-[11px] text-muted">{categoryInfo(m.topCategory.id).emoji} {m.topCategory.label}</div>}
-                  </div>
-                </div>
-                {pct !== null && (
-                  <div className="mt-2 h-1.5 rounded-full bg-card-2 overflow-hidden">
-                    <div className={`h-full ${pct >= 100 ? "bg-bad" : pct >= 75 ? "bg-warn" : "bg-good"}`} style={{ width: `${pct}%` }} />
-                  </div>
+      <SectionHead label="Leaderboard" right="Lowest wins" className="pt-[22px]" />
+      {stats.members.map((m, i) => {
+        const isMe = m.userId === user.id;
+        const pct = league.budgetTargetMinor ? Math.min(100, Math.round((m.totalMinor / league.budgetTargetMinor) * 100)) : null;
+        const rankColor = i === 0 ? "text-accent" : isMe ? "text-ink" : "text-muted";
+        const barColor = pct === null ? "" : pct >= 100 ? "bg-bad" : pct >= 75 ? "bg-warn" : "bg-good";
+        return (
+          <div key={m.userId} className="flex items-center gap-3 border-t border-line px-4 py-3">
+            <div className={`w-[26px] shrink-0 text-center font-mono text-[22px] leading-none ${rankColor}`}>{m.rank}</div>
+            <Avatar name={m.name} image={m.image} />
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate text-[15px] font-semibold">{m.name}</span>
+                {isMe && <span className="rounded bg-accent-soft px-[5px] py-px text-[11px] font-semibold tracking-[0.04em] text-accent">YOU</span>}
+              </div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1 text-xs text-muted">
+                <span>
+                  {m.txCount} {m.txCount === 1 ? "entry" : "entries"} · {m.uploadDays}/{stats.daysElapsed} days
+                </span>
+                {m.currentStreak >= 3 && (
+                  <span className="inline-flex items-center gap-px text-warn">
+                    <Icon name="local_fire_department" size={14} fill />
+                    {m.currentStreak}
+                  </span>
                 )}
-              </li>
-            );
-          })}
-        </ol>
-        {league.budgetTargetMinor ? <p className="text-xs text-muted">Bar shows progress towards the {formatMoney(league.budgetTargetMinor, league.currency)} budget target.</p> : null}
-        {excluded.size > 0 && <p className="text-xs text-muted">Not counted: {[...excluded].map((c) => categoryInfo(c).label).join(", ")}.</p>}
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-semibold">Recent spending</h2>
-        {recent.length === 0 && <p className="text-sm text-muted">Nothing confirmed yet. Be the first (or the most honest).</p>}
-        <ul className="space-y-2">
-          {recent.map(({ tx, user: u, shotUrl }) => {
-            const ch = openChallenges.filter((c) => c.ch.transactionId === tx.id);
-            const cat = categoryInfo(tx.category);
-            return (
-              <li key={tx.id} className="card p-3">
-                <div className="flex items-center gap-3">
-                  <Avatar name={u.name} image={u.image} size={30} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{cat.emoji} {tx.merchant}</div>
-                    <div className="text-xs text-muted">{u.name?.split(" ")[0]} · {formatDay(tx.occurredOn)}{excluded.has(tx.category) ? " · not counted" : ""}</div>
-                  </div>
-                  <div className="font-mono text-sm">{formatMoney(tx.amountLeagueMinor, league.currency)}</div>
-                  {shotUrl && <a href={shotUrl} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm" title="View screenshot">🧾</a>}
-                  {league.allowChallenges && tx.userId !== user.id && ch.length === 0 && <ChallengeForm txId={tx.id} />}
+                {m.penaltyMinor > 0 && <span className="text-bad">+{formatMoney(m.penaltyMinor, league.currency)} penalty</span>}
+              </div>
+              {pct !== null && (
+                <div className="mt-2 h-[3px] overflow-hidden rounded-sm bg-line">
+                  <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
                 </div>
-                {ch.map((c) => (
-                  <div key={c.ch.id} className="mt-2 text-xs text-warn">⚠️ Challenged by {c.raisedBy?.split(" ")[0]}: &ldquo;{c.ch.reason}&rdquo;</div>
-                ))}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+              )}
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="font-mono text-base font-semibold">{formatMoney(m.totalMinor, league.currency)}</div>
+              {m.topCategory && <div className="mt-0.5 text-xs text-muted">{categoryInfo(m.topCategory.id).short}</div>}
+            </div>
+          </div>
+        );
+      })}
+      <div className="border-t border-line px-4 pt-2.5 text-xs text-muted">{footnote.join(" ")}</div>
+
+      <SectionHead label="Recent spending" right={recent.length ? "Tap a row for actions" : undefined} />
+      {recent.length === 0 && <div className="border-t border-line px-4 py-4 text-sm text-muted">Nothing confirmed yet. Be the first, or the most honest.</div>}
+      {recent.map(({ tx, user: u, shotUrl }) => {
+        const cat = categoryInfo(tx.category);
+        const mine = tx.userId === user.id;
+        const chs = openChallenges.filter((c) => c.ch.transactionId === tx.id);
+        const meta = [mine ? "You" : (u.name ?? "Someone").split(" ")[0], formatRelativeDay(tx.occurredOn, today), cat.short, excluded.has(tx.category) ? "not counted" : null]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <EntryRow
+            key={tx.id}
+            mode="board"
+            txId={tx.id}
+            icon={cat.icon}
+            merchant={tx.merchant}
+            meta={meta}
+            amount={formatMoney(tx.amountLeagueMinor, league.currency)}
+            shotUrl={shotUrl}
+            challenges={chs.map((c) => ({ id: c.ch.id, by: c.ch.raisedById === user.id ? "you" : (c.raisedBy ?? "Someone").split(" ")[0], reason: c.ch.reason }))}
+            canChallenge={league.allowChallenges && !mine && chs.length === 0}
+          />
+        );
+      })}
+      <div className="h-8" />
     </div>
   );
 }
-

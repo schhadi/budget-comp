@@ -9,19 +9,19 @@ export function Avatar({ name, image, size = 36 }: { name: string | null; image?
     return (
       <img
         src={image}
-        alt={name ?? ""}
+        alt=""
         width={size}
         height={size}
         referrerPolicy="no-referrer"
-        className="rounded-full object-cover shrink-0"
+        className="shrink-0 rounded-full object-cover"
         style={{ width: size, height: size }}
       />
     );
   }
   return (
     <div
-      className="rounded-full bg-accent/30 text-foreground font-semibold flex items-center justify-center shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className="flex shrink-0 items-center justify-center rounded-full bg-accent-soft font-semibold text-accent"
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36) }}
       aria-hidden
     >
       {initials || "?"}

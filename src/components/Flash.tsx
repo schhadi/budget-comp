@@ -1,8 +1,16 @@
+import { Icon } from "./Icon";
+
+/** Full-width notice row that sits between hairline sections. */
 export function Flash({ kind, children }: { kind: "ok" | "error" | "info"; children: React.ReactNode }) {
-  const styles = {
-    ok: "border-good/40 bg-good/10 text-good",
-    error: "border-bad/40 bg-bad/10 text-bad",
-    info: "border-accent/40 bg-accent/10 text-foreground",
+  const { cls, icon } = {
+    ok: { cls: "bg-good-soft text-good", icon: "check_circle" },
+    error: { cls: "bg-bad-soft text-bad", icon: "error" },
+    info: { cls: "bg-accent-soft text-accent", icon: "info" },
   }[kind];
-  return <div className={`rounded-xl border px-3 py-2 text-sm ${styles}`}>{children}</div>;
+  return (
+    <div className={`flex min-h-12 items-center gap-3 border-b border-line px-4 py-3 text-sm font-medium ${cls}`}>
+      <Icon name={icon} fill size={20} />
+      <span className="flex-1">{children}</span>
+    </div>
+  );
 }

@@ -2,34 +2,63 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/db";
 import { recaps } from "@/db/schema";
+import { Icon } from "@/components/Icon";
 import { LeagueHeader } from "@/components/LeagueHeader";
-import { formatPeriod } from "@/lib/dates";
+import type { RecapSlides } from "@/lib/anthropic";
+import { formatDay, formatPeriodShort, isoWeekNumber } from "@/lib/dates";
 import { requireMember } from "@/lib/league-access";
+import type { RecapStatsPayload } from "@/lib/recap";
 
 export default async function WrappedListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { league, membership } = await requireMember(id);
+  const { user, league, membership } = await requireMember(id);
   const list = await db.select().from(recaps).where(eq(recaps.leagueId, league.id)).orderBy(desc(recaps.periodStart), desc(recaps.createdAt));
 
+  const nextNote = league.weeklyRecap ? "Next one lands Monday morning." : league.monthlyRecap ? "Next one lands on the 1st." : "Automatic recaps are off for this league.";
+
   return (
-    <div className="space-y-6">
-      <LeagueHeader league={league} active="/wrapped" isOwner={membership.role === "owner"} />
-      {list.length === 0 && (
-        <div className="card p-6 text-center">
-          <div className="text-4xl">✨</div>
-          <p className="mt-3 font-medium">No Wrapped yet.</p>
-          <p className="text-sm text-muted mt-1">Your first one lands {league.weeklyRecap ? "on Monday morning" : "on the 1st"}, with an email.{membership.role === "owner" ? " Or generate one now from Settings." : ""}</p>
-        </div>
-      )}
-      <div className="grid gap-3">
-        {list.map((r) => (
-          <Link key={r.id} href={`/leagues/${league.id}/wrapped/${r.id}`} className={`rounded-2xl p-5 text-white bg-gradient-to-br ${r.kind === "weekly" ? "from-fuchsia-600 to-indigo-900" : "from-amber-400 to-rose-800"} hover:opacity-95`}>
-            <div className="uppercase tracking-[0.2em] text-xs opacity-80">{r.kind} Wrapped</div>
-            <div className="text-2xl font-black mt-1">{formatPeriod({ start: r.periodStart, end: r.periodEnd })}</div>
-            <div className="text-sm opacity-80 mt-2">Tap to play →</div>
-          </Link>
-        ))}
+    <div className="rise flex flex-col">
+      <LeagueHeader league={league} user={user} />
+      <div className="px-4 pt-5 pb-1.5">
+        <div className="text-[26px] leading-[1.15] font-semibold tracking-[-0.02em]">Wrapped</div>
+        <div className="mt-1 text-sm text-muted">A recap every Monday and on the 1st, emailed to everyone.</div>
       </div>
+
+      {list.length === 0 ? (
+        <div className="mt-2.5 border-t border-line px-4 py-4 text-sm text-muted">
+          No Wrapped yet.{membership.role === "owner" ? " You can generate one now from league settings." : ""}
+        </div>
+      ) : (
+        <>
+          <div className="eyebrow px-4 pt-2.5 pb-2">Past recaps</div>
+          {list.map((r) => {
+            const slides = r.slides as RecapSlides;
+            const stats = r.stats as RecapStatsPayload;
+            const mine = slides.member_slides.find((m) => m.user_id === user.id)?.slides ?? [];
+            const slideCount = 2 + slides.league_slides.length + (mine.length ? mine.length + 1 : 0);
+            const winner = stats.leaderboard[0];
+            const winnerLabel = winner ? (winner.userId === user.id ? "You won" : `${winner.name.split(" ")[0]} won`) : null;
+            const weekly = r.kind === "weekly";
+            return (
+              <Link key={r.id} href={`/leagues/${league.id}/wrapped/${r.id}`} className="flex min-h-[72px] items-center gap-3.5 border-t border-line px-4 py-3">
+                <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-story font-mono text-story-ink">
+                  <span className="text-[11px] tracking-[0.06em] opacity-70">{weekly ? "WEEK" : "MONTH"}</span>
+                  <span className="text-base leading-[1.1] font-semibold">{weekly ? isoWeekNumber(r.periodStart) : formatDay(r.periodStart, { month: "2-digit" })}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-semibold">
+                    {weekly ? formatPeriodShort({ start: r.periodStart, end: r.periodEnd }) : formatDay(r.periodStart, { month: "long", year: "numeric" })}
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted">{[weekly ? "Weekly Wrapped" : "Monthly Wrapped", `${slideCount} slides`, winnerLabel].filter(Boolean).join(" · ")}</div>
+                </div>
+                <Icon name="play_circle" size={24} fill className="text-accent" />
+              </Link>
+            );
+          })}
+        </>
+      )}
+      <div className="border-t border-line px-4 pt-3.5 text-xs text-muted">{nextNote}</div>
+      <div className="h-8" />
     </div>
   );
 }

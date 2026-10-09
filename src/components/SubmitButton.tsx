@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 export function SubmitButton({
   children,
   pendingText = "Working…",
-  className = "btn btn-primary",
+  className = "btn-primary",
 }: {
   children: React.ReactNode;
   pendingText?: string;

@@ -1,10 +1,12 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { memberships, users } from "@/db/schema";
 import { listFriends } from "@/actions/friends";
 import { addFriendsToLeague, regenerateInviteCode, removeMember } from "@/actions/leagues";
 import { Avatar } from "@/components/Avatar";
+import { CopyLink } from "@/components/CopyLink";
 import { LeagueHeader } from "@/components/LeagueHeader";
+import { SectionHead } from "@/components/PageHeader";
 import { SubmitButton } from "@/components/SubmitButton";
 import { appUrl } from "@/lib/env";
 import { requireMember } from "@/lib/league-access";
@@ -18,64 +20,75 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
     .select({ m: memberships, u: users })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))
-    .where(eq(memberships.leagueId, league.id));
+    .where(eq(memberships.leagueId, league.id))
+    .orderBy(asc(memberships.joinedAt));
+  members.sort((a, b) => (a.m.role === "owner" ? -1 : b.m.role === "owner" ? 1 : 0));
   const memberIds = new Set(members.map((x) => x.u.id));
   const friends = (await listFriends(user.id)).filter((f) => !memberIds.has(f.user.id));
   const inviteUrl = `${appUrl()}/join/${league.inviteCode}`;
+  const joined = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
 
   return (
-    <div className="space-y-6">
-      <LeagueHeader league={league} active="/members" isOwner={isOwner} />
+    <div className="rise flex flex-col">
+      <LeagueHeader league={league} user={user} />
 
-      <section className="space-y-2">
-        <h2 className="font-semibold">Members ({members.length})</h2>
-        {members.map(({ m, u }) => (
-          <div key={u.id} className="card p-3 flex items-center gap-3">
+      <SectionHead label="Members" right={`${members.length} ${members.length === 1 ? "person" : "people"}`} className="pt-5" />
+      {members.map(({ m, u }) => {
+        const isMe = u.id === user.id;
+        const action = m.role !== "owner" && (isOwner || isMe) ? (isMe ? "Leave" : "Remove") : null;
+        return (
+          <div key={u.id} className="flex min-h-[60px] items-center gap-3 border-t border-line py-2.5 pr-2 pl-4">
             <Avatar name={u.name} image={u.image} />
-            <div className="flex-1 min-w-0">
-              <div className="font-medium truncate">{u.name}{u.id === user.id ? " (you)" : ""}</div>
-              <div className="text-xs text-muted">{m.role === "owner" ? "👑 Owner" : "Member"}</div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[15px] font-medium">
+                <span className="truncate">{u.name ?? u.email}</span>
+                {isMe && <span className="rounded bg-accent-soft px-[5px] py-px text-[11px] font-semibold tracking-[0.04em] text-accent">YOU</span>}
+              </div>
+              <div className="mt-px text-xs text-muted">{m.role === "owner" ? "Owner" : `Member · joined ${joined(m.joinedAt)}`}</div>
             </div>
-            {m.role !== "owner" && (isOwner || u.id === user.id) && (
+            {action && (
               <form action={removeMember.bind(null, league.id, u.id)}>
-                <button className="btn btn-ghost btn-sm">{u.id === user.id ? "Leave" : "Remove"}</button>
+                <button className="btn-text">{action}</button>
               </form>
             )}
           </div>
-        ))}
-      </section>
+        );
+      })}
 
-      <section className="card p-4 space-y-3">
-        <div className="font-medium">Add friends</div>
-        {friends.length === 0 ? (
-          <p className="text-sm text-muted">All your friends are already here, or you haven&apos;t added any yet.</p>
-        ) : (
-          <form action={addFriendsToLeague.bind(null, league.id)} className="space-y-2">
-            {friends.map((f) => (
-              <label key={f.user.id} className="flex items-center gap-3 text-sm">
-                <input type="checkbox" name={`friend_${f.user.id}`} className="checkbox" />
-                <Avatar name={f.user.name} image={f.user.image} size={28} />
-                <span>{f.user.name}</span>
-              </label>
-            ))}
-            <SubmitButton className="btn btn-primary btn-sm" pendingText="Adding…">Add selected</SubmitButton>
-          </form>
-        )}
-      </section>
+      <div className="border-t border-line" />
+      <SectionHead label="Add friends" />
+      {friends.length === 0 ? (
+        <div className="border-t border-line px-4 py-3 text-sm text-muted">All your friends are already here, or you haven&apos;t added any yet.</div>
+      ) : (
+        <form action={addFriendsToLeague.bind(null, league.id)}>
+          {friends.map((f) => (
+            <label key={f.user.id} className="flex min-h-14 items-center gap-3 border-t border-line px-4 py-2.5">
+              <input type="checkbox" name={`friend_${f.user.id}`} className="checkbox" />
+              <Avatar name={f.user.name} image={f.user.image} size={32} />
+              <span className="flex-1 text-[15px]">{f.user.name ?? f.user.email}</span>
+            </label>
+          ))}
+          <div className="border-t border-line px-4 pt-3">
+            <SubmitButton className="btn-outline !h-11 !px-4" pendingText="Adding…">
+              Add selected
+            </SubmitButton>
+          </div>
+        </form>
+      )}
 
-      <section className="card p-4 space-y-2">
-        <div className="font-medium">Invite link</div>
-        <p className="text-xs text-muted">Anyone with this link can join after signing in with Google.</p>
-        <input readOnly className="input font-mono text-sm" value={inviteUrl} />
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted">Code: <span className="font-mono tracking-widest">{league.inviteCode}</span></span>
+      <SectionHead label="Invite link" right={<>Code <span className="font-mono tracking-[0.08em]">{league.inviteCode}</span></>} />
+      <div className="flex flex-col gap-2.5 border-t border-line px-4 pt-3">
+        <CopyLink url={inviteUrl} />
+        <div className="flex items-center justify-between gap-3 text-xs text-muted">
+          <span>Anyone with the link can join after signing in with Google.</span>
           {isOwner && (
             <form action={regenerateInviteCode.bind(null, league.id)}>
-              <button className="btn btn-ghost btn-sm">Reset link</button>
+              <button className="h-9 shrink-0 px-2 text-[13px] font-semibold text-accent">Reset link</button>
             </form>
           )}
         </div>
-      </section>
+      </div>
+      <div className="h-8" />
     </div>
   );
 }
