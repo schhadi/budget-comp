@@ -12,6 +12,11 @@ export function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status });
 }
 
+/** Error reply. `message` mirrors `error` so the shortcut can show one field whether or not the call worked. */
+export function fail(error: string, status: number) {
+  return json({ ok: false, error, message: error }, status);
+}
+
 export function str(value: unknown): string {
   return typeof value === "string" ? value.trim() : typeof value === "number" ? String(value) : "";
 }

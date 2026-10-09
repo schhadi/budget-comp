@@ -8,7 +8,7 @@ import { resolveMerchant } from "@/lib/categorise";
 import { isoDateValid, todayIn } from "@/lib/dates";
 import { appUrl } from "@/lib/env";
 import { convertMinor } from "@/lib/fx";
-import { isObject, json, leaguesFor, parseShortcutText, readBody, str } from "@/lib/ingest";
+import { fail, isObject, json, leaguesFor, parseShortcutText, readBody, str } from "@/lib/ingest";
 import { formatMoney, normaliseCurrencyCode, parseMoneyText, toMinor } from "@/lib/money";
 import { PAIR_TOKEN_PREFIX } from "@/lib/pairing";
 
@@ -35,9 +35,9 @@ const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
 /** Connection test: who does this key belong to and where will entries go? */
 export async function GET(request: Request) {
   const key = extractApiKey(request, {});
-  if (!key) return json({ ok: false, error: "Missing API key. Send it as 'Authorization: Bearer <key>'." }, 401);
+  if (!key) return fail("Missing API key. Send it as 'Authorization: Bearer <key>'.", 401);
   const auth = await userForApiKey(key);
-  if (!auth) return json({ ok: false, error: "That key isn't valid. Reconnect in Settings → Apple Pay auto-log." }, 401);
+  if (!auth) return fail("That key isn't valid. Reconnect in Settings → Apple Pay auto-log.", 401);
   const mine = await leaguesFor(auth.user.id);
   return json({
     ok: true,
@@ -51,13 +51,13 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   const textPayload = str(body.text ?? body.payload ?? body.input);
   if (textPayload.startsWith(PAIR_TOKEN_PREFIX)) {
-    return json({ ok: false, error: "That's a connect link, not a payment. The shortcut should send it to /api/ingest/apple-pay/pair." }, 400);
+    return fail("That's a connect link, not a payment. The shortcut should send it to /api/ingest/apple-pay/pair.", 400);
   }
 
   const key = extractApiKey(request, body);
-  if (!key) return json({ ok: false, error: "Missing API key. Send it as 'Authorization: Bearer <key>' or a 'key' field." }, 401);
+  if (!key) return fail("Not connected: no key was sent. In the app open Settings → Apple Pay auto-log and tap Connect this iPhone. (Built it yourself? Check the Authorization header.)", 401);
   const auth = await userForApiKey(key);
-  if (!auth) return json({ ok: false, error: "That key isn't valid. Reconnect in Settings → Apple Pay auto-log." }, 401);
+  if (!auth) return fail("That key isn't valid. Reconnect in Settings → Apple Pay auto-log.", 401);
   const { user } = auth;
 
   const fromText = textPayload ? parseShortcutText(textPayload) : null;
@@ -84,9 +84,9 @@ export async function POST(request: Request) {
   if (onlyLeague) {
     const wanted = onlyLeague.toLowerCase();
     targets = targets.filter((l) => l.id === onlyLeague || l.name.toLowerCase() === wanted);
-    if (!targets.length) return json({ ok: false, error: `You're not in a league called "${onlyLeague}".` }, 404);
+    if (!targets.length) return fail(`You're not in a league called "${onlyLeague}".`, 404);
   }
-  if (!targets.length) return json({ ok: false, error: "You're not in any league yet. Join one in the app first." }, 409);
+  if (!targets.length) return fail("You're not in any league yet. Join one in the app first.", 409);
 
   const amount = money.amount ?? 0;
   const amountMissing = !(amount > 0);

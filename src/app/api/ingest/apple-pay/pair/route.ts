@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { apiKeys, users } from "@/db/schema";
 import { rotateApiKey } from "@/lib/api-keys";
-import { json, leaguesFor, readBody, str } from "@/lib/ingest";
+import { fail, json, leaguesFor, readBody, str } from "@/lib/ingest";
 import { verifyPairToken } from "@/lib/pairing";
 
 /**
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   const token = str(body.token ?? body.text ?? body.input ?? body.key);
   const device = str(body.device ?? body.device_name ?? body.deviceName).slice(0, 60);
-  if (!token) return json({ ok: false, error: "No connect token was sent. Open Settings → Apple Pay auto-log in the app and tap Connect this iPhone." }, 400);
+  if (!token) return fail("No connect token was sent. Open Settings → Apple Pay auto-log in the app and tap Connect this iPhone.", 400);
 
   const check = verifyPairToken(token);
   if (!check.ok) {
@@ -30,16 +30,16 @@ export async function POST(request: Request) {
       check.reason === "expired"
         ? "This connect link has expired. Go back to the app, reload the page and tap Connect this iPhone again."
         : "This connect link isn't valid. Go back to the app and tap Connect this iPhone again.";
-    return json({ ok: false, error }, 401);
+    return fail(error, 401);
   }
 
   const user = await db.query.users.findFirst({ where: eq(users.id, check.userId) });
-  if (!user) return json({ ok: false, error: "That account no longer exists." }, 401);
+  if (!user) return fail("That account no longer exists.", 401);
 
   // A key created after this token was minted means the link was already used; don't let a replay rotate it again.
   const existing = await db.query.apiKeys.findFirst({ where: eq(apiKeys.userId, user.id) });
   if (existing && existing.createdAt.getTime() > check.issuedAt.getTime()) {
-    return json({ ok: false, error: "This connect link was already used. If you want to reconnect, reload the page in the app and tap Connect again." }, 409);
+    return fail("This connect link was already used. If you want to reconnect, reload the page in the app and tap Connect again.", 409);
   }
 
   const key = await rotateApiKey(user.id, device || "iPhone");
@@ -61,5 +61,5 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  return json({ ok: false, error: "POST a connect token here. Tap Connect this iPhone in Settings → Apple Pay auto-log to get one." }, 405);
+  return fail("POST a connect token here. Tap Connect this iPhone in Settings → Apple Pay auto-log to get one.", 405);
 }
