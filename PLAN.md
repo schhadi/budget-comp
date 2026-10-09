@@ -1,4 +1,4 @@
-# Who Can Spend the Less? — Project Plan
+# Skint — Project Plan
 
 A small, fun leaderboard web app for a group of university friends. Everyone uploads
 screenshots of what they spend (bank app, receipts, Deliveroo, Amazon, etc.), an AI
