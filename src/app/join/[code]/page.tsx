@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { leagues } from "@/db/schema";
 import { joinByCode } from "@/actions/leagues";
 import { GoogleButton } from "@/components/GoogleButton";
+import { Icon } from "@/components/Icon";
 
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
@@ -12,11 +14,13 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
 
   if (!league) {
     return (
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="card p-6 text-center max-w-sm">
-          <div className="text-4xl">🤷</div>
-          <p className="mt-3 font-medium">That invite link doesn&apos;t work.</p>
-        </div>
+      <main className="rise flex flex-1 flex-col justify-center px-7">
+        <Icon name="link_off" size={40} className="text-muted" />
+        <h1 className="mt-6 text-[26px] leading-[1.15] font-semibold tracking-[-0.02em]">That invite link doesn&apos;t work</h1>
+        <p className="mt-2 text-[15px] text-ink2">It may have been reset. Ask your friend for a fresh link or code.</p>
+        <Link href="/" className="btn-outline mt-6 self-start !h-11 !px-[18px]">
+          Go home
+        </Link>
       </main>
     );
   }
@@ -26,13 +30,18 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
-      <div className="card p-6 text-center max-w-sm space-y-4">
-        <div className="text-5xl">{league.emoji}</div>
-        <h1 className="text-2xl font-bold">Join {league.name}</h1>
-        <p className="text-sm text-muted">Sign in with Google and you&apos;re in.</p>
-        <GoogleButton redirectTo={`/join/${code}`} />
+    <main
+      className="rise flex flex-1 flex-col px-7"
+      style={{ paddingTop: "calc(env(safe-area-inset-top) + 72px)", paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)" }}
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-[14px] bg-accent text-accent-ink">
+        <Icon name="group_add" size={28} fill />
       </div>
+      <div className="eyebrow mt-7">You&apos;re invited</div>
+      <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold tracking-[-0.025em] text-pretty">Join {league.name}</h1>
+      <p className="mt-3.5 text-base leading-normal text-ink2">Sign in with Google and you&apos;re in. Lowest total wins.</p>
+      <div className="min-h-10 flex-1" />
+      <GoogleButton redirectTo={`/join/${code}`} />
     </main>
   );
 }

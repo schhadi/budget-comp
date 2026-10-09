@@ -7,10 +7,22 @@ import type { ActionResult } from "@/actions/friends";
 export function JoinByCodeForm() {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(joinByCodeForm, null);
   return (
-    <form action={action} className="flex gap-2">
-      <input name="code" className="input uppercase tracking-widest font-mono" placeholder="INVITE CODE" maxLength={12} required />
-      <button className="btn btn-secondary" disabled={pending} type="submit">{pending ? "…" : "Join"}</button>
-      {state && !state.ok && <p className="text-xs text-bad self-center">{state.error}</p>}
+    <form action={action} className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <input
+          name="code"
+          className="field font-mono uppercase tracking-[0.12em]"
+          placeholder="INVITE CODE"
+          maxLength={12}
+          autoCapitalize="characters"
+          autoComplete="off"
+          required
+        />
+        <button className="h-12 shrink-0 rounded-xl border border-line2 bg-surface px-[18px] text-[15px] font-semibold" disabled={pending} type="submit">
+          {pending ? "…" : "Join"}
+        </button>
+      </div>
+      {state && !state.ok && <p className="text-xs text-bad">{state.error}</p>}
     </form>
   );
 }

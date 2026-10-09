@@ -3,6 +3,7 @@ import { listFriends } from "@/actions/friends";
 import { Avatar } from "@/components/Avatar";
 import { CreateLeagueForm } from "@/components/LeagueForms";
 import { LeagueSettingsFields } from "@/components/LeagueSettingsFields";
+import { PageHeader, SectionHead } from "@/components/PageHeader";
 import { requireUser } from "@/lib/session";
 
 export default async function NewLeaguePage() {
@@ -10,30 +11,29 @@ export default async function NewLeaguePage() {
   const friends = await listFriends(me.id);
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <h1 className="text-2xl font-bold">New league</h1>
+    <div className="rise flex flex-1 flex-col">
+      <PageHeader title="New league" back="/dashboard" />
       <CreateLeagueForm>
-        <div className="card p-4">
-          <LeagueSettingsFields />
-        </div>
-        <div className="card p-4 space-y-3">
-          <div className="font-medium">Add friends now</div>
-          {friends.length === 0 ? (
-            <p className="text-sm text-muted">
-              No friends yet. <Link href="/friends" className="text-accent underline">Add some</Link>, or share the invite link after creating the league.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {friends.map((f) => (
-                <label key={f.user.id} className="flex items-center gap-3 text-sm">
-                  <input type="checkbox" name={`friend_${f.user.id}`} className="checkbox" defaultChecked />
-                  <Avatar name={f.user.name} image={f.user.image} size={28} />
-                  <span>{f.user.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-        </div>
+        <LeagueSettingsFields />
+        <SectionHead label="Add friends now" />
+        {friends.length === 0 ? (
+          <div className="border-t border-line px-4 py-3 text-sm text-muted">
+            No friends yet.{" "}
+            <Link href="/friends" className="font-semibold text-accent">
+              Add some
+            </Link>
+            , or share the invite link after creating the league.
+          </div>
+        ) : (
+          friends.map((f) => (
+            <label key={f.user.id} className="flex min-h-14 items-center gap-3 border-t border-line px-4 py-2.5">
+              <input type="checkbox" name={`friend_${f.user.id}`} className="checkbox" defaultChecked />
+              <Avatar name={f.user.name} image={f.user.image} size={32} />
+              <span className="flex-1 text-[15px]">{f.user.name ?? f.user.email}</span>
+            </label>
+          ))
+        )}
+        <div className="border-t border-line" />
       </CreateLeagueForm>
     </div>
   );

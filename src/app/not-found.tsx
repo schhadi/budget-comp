@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { Icon } from "@/components/Icon";
 
 export default function NotFound() {
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
-      <div className="card p-6 text-center max-w-sm">
-        <div className="text-4xl">🫠</div>
-        <p className="mt-3 font-medium">That page doesn&apos;t exist.</p>
-        <Link href="/dashboard" className="btn btn-primary btn-sm mt-4">Back home</Link>
-      </div>
+    <main className="rise flex flex-1 flex-col justify-center px-7">
+      <Icon name="explore_off" size={40} className="text-muted" />
+      <h1 className="mt-6 text-[26px] leading-[1.15] font-semibold tracking-[-0.02em]">That page doesn&apos;t exist</h1>
+      <Link href="/dashboard" className="btn-outline mt-6 self-start !h-11 !px-[18px]">
+        Back to your leagues
+      </Link>
     </main>
   );
 }

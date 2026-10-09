@@ -76,6 +76,33 @@ export function formatPeriod(p: Period) {
   return `${formatDay(p.start)} – ${formatDay(p.end, { day: "numeric", month: "short", year: "numeric" })}`;
 }
 
+/** Compact period label, e.g. "5 – 11 Oct", "28 Sep – 4 Oct" or "October". */
+export function formatPeriodShort(p: Period) {
+  if (p.start.endsWith("-01") && monthContaining(p.start).end === p.end) return formatDay(p.start, { month: "long" });
+  if (p.start.slice(0, 7) === p.end.slice(0, 7)) return `${formatDay(p.start, { day: "numeric" })} – ${formatDay(p.end)}`;
+  return `${formatDay(p.start)} – ${formatDay(p.end)}`;
+}
+
+/** "Today", "Yesterday", or "Wed 7 Oct". */
+export function formatRelativeDay(iso: string, today: string) {
+  if (iso === today) return "Today";
+  if (iso === addDays(today, -1)) return "Yesterday";
+  return formatDay(iso, { weekday: "short", day: "numeric", month: "short" });
+}
+
+/** ISO-8601 week number for a YYYY-MM-DD date. */
+export function isoWeekNumber(iso: string) {
+  const thursday = addDays(iso, 3 - weekdayIndex(iso));
+  const yearStart = thursday.slice(0, 4) + "-01-01";
+  return Math.floor(daysBetween(yearStart, thursday) / 7) + 1;
+}
+
+export function ordinal(n: number) {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  return `${n}${({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th"}`;
+}
+
 export function listDays(p: Period): string[] {
   const out: string[] = [];
   for (let d = p.start; d <= p.end; d = addDays(d, 1)) out.push(d);

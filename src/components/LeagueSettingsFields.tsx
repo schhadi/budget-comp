@@ -1,98 +1,117 @@
 import type { League } from "@/db/schema";
 import { CATEGORIES } from "@/lib/categories";
 import { CURRENCIES, fromMinor } from "@/lib/money";
+import { Icon } from "./Icon";
+import { SectionHead } from "./PageHeader";
+import { SwitchRow } from "./SwitchRow";
 
 const TIMEZONES = ["Europe/London", "Europe/Dublin", "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Amsterdam", "Europe/Istanbul", "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Asia/Singapore", "Asia/Hong_Kong", "Asia/Tokyo", "Asia/Seoul", "Australia/Sydney", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto", "Africa/Lagos", "Africa/Johannesburg"];
 
+function currencySymbol(currency: string) {
+  try {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency, currencyDisplay: "narrowSymbol" }).formatToParts(0).find((p) => p.type === "currency")?.value ?? currency;
+  } catch {
+    return currency;
+  }
+}
+
 export function LeagueSettingsFields({ league }: { league?: League | null }) {
   const currency = league?.currency ?? "GBP";
+  const symbol = currencySymbol(currency);
   const excluded = new Set(league?.excludedCategories ?? ["rent_bills"]);
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-[4.5rem_1fr] gap-3">
-        <div>
-          <label className="label">Emoji</label>
-          <input name="emoji" className="input text-center" defaultValue={league?.emoji ?? "🏆"} maxLength={4} />
-        </div>
-        <div>
-          <label className="label">League name</label>
-          <input name="name" className="input" defaultValue={league?.name ?? ""} placeholder="Flat 4B Frugal Cup" required maxLength={60} />
-        </div>
-      </div>
+    <>
+      <input type="hidden" name="emoji" defaultValue={league?.emoji ?? "🏆"} />
 
-      <div className="grid grid-cols-2 gap-3">
+      <SectionHead label="Basics" className="pt-[22px]" />
+      <div className="flex flex-col gap-3.5 px-4">
         <div>
-          <label className="label">Leaderboard resets</label>
-          <select name="window" className="select" defaultValue={league?.window ?? "weekly"}>
-            <option value="weekly">Every week (Mon–Sun)</option>
-            <option value="monthly">Every month</option>
-          </select>
+          <label className="label" htmlFor="league-name">League name</label>
+          <input id="league-name" name="name" className="field" defaultValue={league?.name ?? ""} placeholder="Flat 4B Frugal Cup" required maxLength={60} />
         </div>
-        <div>
-          <label className="label">Currency</label>
-          <select name="currency" className="select" defaultValue={currency}>
-            {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className="col-span-2">
-          <label className="label">Timezone (for &quot;today&quot; and reminders)</label>
-          <select name="timezone" className="select" defaultValue={league?.timezone ?? "Europe/London"}>
-            {TIMEZONES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <fieldset className="space-y-2">
-        <legend className="label">Don&apos;t count these categories (fun-money only)</legend>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          {CATEGORIES.map((c) => (
-            <label key={c.id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name={`exclude_${c.id}`} className="checkbox" defaultChecked={excluded.has(c.id)} />
-              <span>{c.emoji} {c.label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <div className="space-y-3">
-        <label className="flex items-center gap-3">
-          <input type="checkbox" name="dailyUploadRequired" className="checkbox" defaultChecked={league?.dailyUploadRequired ?? true} />
-          <span>
-            <span className="block text-sm">Daily upload required</span>
-            <span className="block text-xs text-muted">Members get an evening email if they haven&apos;t logged a spend or a &quot;no spend&quot; day.</span>
-          </span>
-        </label>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">Missed-day penalty ({currency})</label>
-            <input name="missedDayPenalty" inputMode="decimal" className="input" defaultValue={league ? fromMinor(league.missedDayPenaltyMinor, league.currency).toString() : "5"} />
-            <p className="text-xs text-muted mt-1">Added to your total for every day you forget to log. 0 to disable.</p>
+            <label className="label" htmlFor="league-window">Leaderboard resets</label>
+            <select id="league-window" name="window" className="field" defaultValue={league?.window ?? "weekly"}>
+              <option value="weekly">Every week</option>
+              <option value="monthly">Every month</option>
+            </select>
           </div>
           <div>
-            <label className="label">Budget target per period ({currency}, optional)</label>
-            <input name="budgetTarget" inputMode="decimal" className="input" defaultValue={league?.budgetTargetMinor != null ? fromMinor(league.budgetTargetMinor, league.currency).toString() : ""} placeholder="e.g. 60" />
+            <label className="label" htmlFor="league-currency">Currency</label>
+            <select id="league-currency" name="currency" className="field" defaultValue={currency}>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
         </div>
         <div>
-          <label className="label">Stake / prize (optional)</label>
-          <input name="stake" className="input" defaultValue={league?.stake ?? ""} placeholder="Loser buys the first round" maxLength={140} />
+          <label className="label" htmlFor="league-tz">Timezone</label>
+          <select id="league-tz" name="timezone" className="field" defaultValue={league?.timezone ?? "Europe/London"}>
+            {TIMEZONES.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <div className="mt-1.5 text-xs text-muted">Decides what &ldquo;today&rdquo; means for reminders and penalties.</div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <label className="flex items-center gap-3 text-sm">
-          <input type="checkbox" name="allowChallenges" className="checkbox" defaultChecked={league?.allowChallenges ?? true} />
-          Let members challenge suspicious entries
-        </label>
-        <label className="flex items-center gap-3 text-sm">
-          <input type="checkbox" name="weeklyRecap" className="checkbox" defaultChecked={league?.weeklyRecap ?? true} />
-          Weekly Wrapped every Monday
-        </label>
-        <label className="flex items-center gap-3 text-sm">
-          <input type="checkbox" name="monthlyRecap" className="checkbox" defaultChecked={league?.monthlyRecap ?? true} />
-          Monthly Wrapped on the 1st
-        </label>
+      <SectionHead label="Not counted" right="Tap to exclude" />
+      <div className="flex flex-wrap gap-2 px-4">
+        {CATEGORIES.map((c) => (
+          <label
+            key={c.id}
+            className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-line2 bg-surface pr-3 pl-2.5 text-[13px] font-semibold text-ink2 has-checked:border-accent has-checked:bg-accent-soft has-checked:text-accent"
+          >
+            <input type="checkbox" name={`exclude_${c.id}`} className="sr-only" defaultChecked={excluded.has(c.id)} />
+            <Icon name={c.icon} size={16} />
+            {c.label}
+          </label>
+        ))}
       </div>
-    </div>
+
+      <SectionHead label="Daily logging" />
+      <SwitchRow name="dailyUploadRequired" title="Daily upload required" subtitle="Evening email if nothing is logged that day." defaultChecked={league?.dailyUploadRequired ?? true} last />
+      <div className="grid grid-cols-2 gap-3 px-4 pt-3.5">
+        <div>
+          <label className="label" htmlFor="league-penalty">Missed-day penalty</label>
+          <div className="field flex items-center gap-1.5 !px-3">
+            <span className="text-muted">{symbol}</span>
+            <input
+              id="league-penalty"
+              name="missedDayPenalty"
+              inputMode="decimal"
+              className="min-w-0 flex-1 bg-transparent font-mono text-base outline-none"
+              defaultValue={league ? fromMinor(league.missedDayPenaltyMinor, league.currency).toString() : "5"}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="label" htmlFor="league-budget">Budget target</label>
+          <div className="field flex items-center gap-1.5 !px-3">
+            <span className="text-muted">{symbol}</span>
+            <input
+              id="league-budget"
+              name="budgetTarget"
+              inputMode="decimal"
+              className="min-w-0 flex-1 bg-transparent font-mono text-base outline-none"
+              defaultValue={league?.budgetTargetMinor != null ? fromMinor(league.budgetTargetMinor, league.currency).toString() : ""}
+              placeholder="optional"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="px-4 pt-1.5 text-xs text-muted">Penalty is added to your total for each day you forget. 0 disables it.</div>
+      <div className="px-4 pt-3.5">
+        <label className="label" htmlFor="league-stake">Stake or prize</label>
+        <input id="league-stake" name="stake" className="field" defaultValue={league?.stake ?? ""} placeholder="Loser buys the first round" maxLength={140} />
+      </div>
+
+      <SectionHead label="Extras" />
+      <SwitchRow name="allowChallenges" title="Members can challenge entries" defaultChecked={league?.allowChallenges ?? true} />
+      <SwitchRow name="weeklyRecap" title="Weekly Wrapped every Monday" defaultChecked={league?.weeklyRecap ?? true} />
+      <SwitchRow name="monthlyRecap" title="Monthly Wrapped on the 1st" defaultChecked={league?.monthlyRecap ?? true} last />
+    </>
   );
 }

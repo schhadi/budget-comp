@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { confirmTransaction, rejectTransaction } from "@/actions/transactions";
 import type { ActionResult } from "@/actions/friends";
 import { CATEGORIES } from "@/lib/categories";
-import { CURRENCIES, fromMinor } from "@/lib/money";
+import { CURRENCIES, formatMoney, fromMinor } from "@/lib/money";
+import { Icon } from "./Icon";
 
 export interface ReviewTx {
   id: string;
@@ -23,93 +24,95 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
     async (_prev, formData) => confirmTransaction(tx.id, formData),
     null,
   );
+  const [rejecting, startReject] = useTransition();
   const [showImage, setShowImage] = useState(false);
-  const lowConfidence = (tx.confidence ?? 1) < 0.6;
+  const confidence = Math.round((tx.confidence ?? 0) * 100);
+  const low = (tx.confidence ?? 1) < 0.6;
+  const busy = pending || rejecting;
 
   if (state?.ok) {
     return (
-      <div className="card p-4 flex items-center gap-3 slide-in">
-        <span className="text-2xl">✅</span>
-        <div className="text-sm">
-          <div className="font-medium">Confirmed</div>
-          <div className="text-muted">Counted on the leaderboard.</div>
+      <div className="rise flex items-center gap-3 border-b border-line px-4 py-4 text-good">
+        <Icon name="check_circle" fill />
+        <div>
+          <div className="text-[15px] font-semibold">
+            Confirmed · {tx.merchant} {formatMoney(tx.amountMinor, tx.currency)}
+          </div>
+          <div className="text-xs text-muted">Counted on the leaderboard.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <form action={action} className="card p-4 space-y-3 slide-in">
+    <form action={action} className="rise border-b border-line px-4 pt-4 pb-[18px]">
       <div className="flex items-start gap-3">
         {tx.screenshotUrl ? (
-          <button type="button" onClick={() => setShowImage((v) => !v)} className="shrink-0">
+          <button type="button" onClick={() => setShowImage((v) => !v)} aria-label="View screenshot" className="hatch h-16 w-16 shrink-0 overflow-hidden rounded-[10px] p-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={tx.screenshotUrl} alt="screenshot" className="w-16 h-16 rounded-lg object-cover bg-card-2 border border-border" />
+            <img src={tx.screenshotUrl} alt="" className="h-full w-full object-cover" />
           </button>
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-card-2 flex items-center justify-center text-2xl">🧾</div>
+          <div className="hatch flex h-16 w-16 shrink-0 items-end justify-center rounded-[10px] pb-1 font-mono text-[9px] text-muted">no image</div>
         )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`pill ${lowConfidence ? "text-warn border-warn/40" : ""}`}>
-              {lowConfidence ? "⚠️ double check" : "AI read"} · {Math.round((tx.confidence ?? 0) * 100)}%
-            </span>
-          </div>
-          {tx.notes && <p className="text-xs text-muted mt-1">{tx.notes}</p>}
+        <div className="min-w-0 flex-1">
+          <span className={`inline-flex h-6 items-center gap-[5px] rounded-md px-2 text-xs font-semibold ${low ? "bg-warn-soft text-warn" : "bg-accent-soft text-accent"}`}>
+            <Icon name={low ? "warning" : "auto_awesome"} size={14} fill />
+            {low ? "Check this" : "AI read"} · {confidence}%
+          </span>
+          {tx.notes && <div className="mt-1.5 text-xs text-muted">{tx.notes}</div>}
         </div>
       </div>
 
       {showImage && tx.screenshotUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={tx.screenshotUrl} alt="screenshot" className="w-full rounded-xl border border-border" />
+        <img src={tx.screenshotUrl} alt="Screenshot" className="mt-3 w-full rounded-xl border border-line" />
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <div>
-          <label className="label">Amount</label>
-          <input name="amount" inputMode="decimal" className="input" defaultValue={fromMinor(tx.amountMinor, tx.currency).toFixed(2)} required />
+          <label className="label" htmlFor={`amount-${tx.id}`}>Amount</label>
+          <input id={`amount-${tx.id}`} name="amount" inputMode="decimal" className="field !rounded-[10px] !px-3 font-mono !text-lg" defaultValue={fromMinor(tx.amountMinor, tx.currency).toFixed(2)} required />
         </div>
         <div>
-          <label className="label">Currency</label>
-          <select name="currency" className="select" defaultValue={tx.currency}>
+          <label className="label" htmlFor={`currency-${tx.id}`}>Currency</label>
+          <select id={`currency-${tx.id}`} name="currency" className="field !rounded-[10px]" defaultValue={tx.currency}>
             {[...new Set([tx.currency, leagueCurrency, ...CURRENCIES])].map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
         <div className="col-span-2">
-          <label className="label">Merchant</label>
-          <input name="merchant" className="input" defaultValue={tx.merchant} required maxLength={80} />
+          <label className="label" htmlFor={`merchant-${tx.id}`}>Merchant</label>
+          <input id={`merchant-${tx.id}`} name="merchant" className="field !rounded-[10px] !px-3" defaultValue={tx.merchant} required maxLength={80} />
         </div>
         <div>
-          <label className="label">Category</label>
-          <select name="category" className="select" defaultValue={tx.category}>
+          <label className="label" htmlFor={`category-${tx.id}`}>Category</label>
+          <select id={`category-${tx.id}`} name="category" className="field !rounded-[10px]" defaultValue={tx.category}>
             {CATEGORIES.map((c) => (
-              <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+              <option key={c.id} value={c.id}>{c.label}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="label">Date</label>
-          <input name="occurredOn" type="date" className="input" defaultValue={tx.occurredOn} required />
+          <label className="label" htmlFor={`date-${tx.id}`}>Date</label>
+          <input id={`date-${tx.id}`} name="occurredOn" type="date" className="field !rounded-[10px]" defaultValue={tx.occurredOn} required />
         </div>
       </div>
 
-      {state && !state.ok && <p className="text-sm text-bad">{state.error}</p>}
+      {state && !state.ok && <p className="mt-3 text-sm text-bad">{state.error}</p>}
 
-      <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary flex-1" disabled={pending}>
+      <div className="mt-4 flex gap-2">
+        <button type="submit" className="btn-primary flex-1" disabled={busy}>
           {pending ? "Saving…" : "Confirm"}
         </button>
         <button
           type="button"
-          className="btn btn-danger"
-          disabled={pending}
-          onClick={() => {
-            if (confirm("Reject this entry? It won't count.")) void rejectTransaction(tx.id);
-          }}
+          className="h-[50px] shrink-0 rounded-xl border border-line2 bg-surface px-[18px] text-[15px] font-semibold text-bad"
+          disabled={busy}
+          onClick={() => startReject(() => rejectTransaction(tx.id))}
         >
-          Reject
+          {rejecting ? "…" : "Reject"}
         </button>
       </div>
     </form>

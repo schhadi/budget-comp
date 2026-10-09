@@ -1,41 +1,47 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { markNoSpendDay } from "@/actions/transactions";
-import { LeagueHeader } from "@/components/LeagueHeader";
-import { ManualEntryForm } from "@/components/ManualEntryForm";
-import { SubmitButton } from "@/components/SubmitButton";
-import { UploadForm } from "@/components/UploadForm";
-import { todayIn } from "@/lib/dates";
+import { BackButton } from "@/components/BackButton";
+import { SectionHead } from "@/components/PageHeader";
+import { UploadForm, UploadRow } from "@/components/UploadForm";
+import { formatDay, todayIn } from "@/lib/dates";
 import { requireMember } from "@/lib/league-access";
 
 export default async function UploadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { league, membership } = await requireMember(id);
+  const { league } = await requireMember(id);
   const today = todayIn(league.timezone);
 
+  async function noSpend() {
+    "use server";
+    await markNoSpendDay(id);
+    redirect(`/leagues/${id}`);
+  }
+
   return (
-    <div className="space-y-6">
-      <LeagueHeader league={league} active="/upload" isOwner={membership.role === "owner"} />
-      <section className="space-y-3">
-        <h2 className="font-semibold">Log today&apos;s spending</h2>
-        <UploadForm leagueId={league.id} />
-      </section>
-
-      <section className="card p-4 flex items-center justify-between gap-3">
-        <div>
-          <div className="font-medium">Spent nothing today?</div>
-          <div className="text-xs text-muted">Log a no-spend day so you don&apos;t get a missed-day penalty.</div>
+    <div className="rise flex flex-col">
+      <header className="topbar flex items-center justify-between gap-3 pr-2 pl-4">
+        <div className="min-w-0">
+          <div className="text-xl font-semibold tracking-[-0.01em]">Log spending</div>
+          <div className="truncate text-xs text-muted">
+            {formatDay(today, { weekday: "long", day: "numeric", month: "long" })} · {league.name}
+          </div>
         </div>
-        <form action={markNoSpendDay.bind(null, league.id, undefined)}>
-          <SubmitButton className="btn btn-secondary btn-sm" pendingText="…">🧘 No spend</SubmitButton>
+        <BackButton fallback={`/leagues/${id}`} icon="close" label="Close" />
+      </header>
+
+      <UploadForm leagueId={league.id}>
+        <SectionHead label="Without a screenshot" className="pt-[22px]" />
+        <Link href={`/leagues/${id}/manual`} className="block">
+          <UploadRow icon="edit" tone="plain" title="Enter manually" subtitle="Cash, or when the AI can't read it" chevron />
+        </Link>
+        <form action={noSpend} className="border-b border-line">
+          <button type="submit" className="block w-full text-left">
+            <UploadRow icon="check_circle" tone="good" title="No spend today" subtitle="Counts as logged, no penalty" />
+          </button>
         </form>
-      </section>
-
-      <section className="card p-4 space-y-3">
-        <div>
-          <div className="font-medium">Add manually</div>
-          <div className="text-xs text-muted">For cash, or if the AI can&apos;t read a screenshot.</div>
-        </div>
-        <ManualEntryForm leagueId={league.id} currency={league.currency} today={today} />
-      </section>
+      </UploadForm>
+      <div className="h-[60px]" />
     </div>
   );
 }

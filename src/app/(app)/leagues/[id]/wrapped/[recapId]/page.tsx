@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { recaps } from "@/db/schema";
 import { WrappedStory } from "@/components/WrappedStory";
 import type { RecapSlides } from "@/lib/anthropic";
-import { formatPeriod } from "@/lib/dates";
+import { formatDay, formatPeriodShort } from "@/lib/dates";
 import { requireMember } from "@/lib/league-access";
 import type { RecapStatsPayload } from "@/lib/recap";
 
@@ -17,18 +17,18 @@ export default async function WrappedPage({ params }: { params: Promise<{ id: st
   const slides = recap.slides as RecapSlides;
   const stats = recap.stats as RecapStatsPayload;
   const mine = slides.member_slides.find((m) => m.user_id === user.id)?.slides ?? [];
+  const period = { start: recap.periodStart, end: recap.periodEnd };
 
   return (
     <WrappedStory
       leagueId={league.id}
       leagueName={league.name}
-      emoji={league.emoji}
       kind={recap.kind}
-      periodLabel={formatPeriod({ start: recap.periodStart, end: recap.periodEnd })}
+      periodLabel={recap.kind === "weekly" ? formatPeriodShort(period) : formatDay(period.start, { month: "long", year: "numeric" })}
       currency={league.currency}
       leagueSlides={slides.league_slides}
       mySlides={mine}
-      leaderboard={stats.leaderboard.map((r) => ({ userId: r.userId, name: r.name, image: r.image, rank: r.rank, totalMinor: r.totalMinor }))}
+      leaderboard={stats.leaderboard.map((r) => ({ userId: r.userId, name: r.name, rank: r.rank, totalMinor: r.totalMinor }))}
       viewerName={(user.name ?? "you").split(" ")[0]}
     />
   );
