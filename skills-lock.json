@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "pricing-strategist": {
+      "source": "ognjengt/founder-skills",
+      "sourceType": "github",
+      "skillPath": "skills/pricing-strategist/SKILL.md",
+      "computedHash": "db2f940c14d2ef113129d62c7cb946261c9ea43a4f11790d65273ea13abbe4b0"
+    }
+  }
+}
