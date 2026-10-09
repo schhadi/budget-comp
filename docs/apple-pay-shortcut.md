@@ -24,14 +24,14 @@ output chip.
 
 | # | Action | Settings |
 | --- | --- | --- |
-| 1 | **Get File** | File Path `Who Can Spend the Less/key.txt`. Turn **Error If Not Found** off. Output = *Key File* |
+| 1 | **Get File from Folder** | Leave the folder as **Shortcuts** (iCloud Drive). File Path `Who Can Spend the Less/key.txt`. Expand ▸ turn **Error If Not Found** off. Output = *Key File*. (It's "Get File from Folder" on iOS 17 and later, not "Get File of Type".) |
 | 2 | **Text** | Contents: just the variable *Shortcut Input*. Output = *Input Text* |
 | 3 | **If** | *Input Text* **begins with** `wcsl_pair_` |
 | 4 | **Get Device Details** | **Device Name**. Output = *Device Name* |
 | 5 | **Get Contents of URL** | URL `https://YOUR-DOMAIN/api/ingest/apple-pay/pair`. Expand ▸ Method **POST**, Request Body **JSON**, two Text fields: `token` = *Input Text*, `device` = *Device Name*. Output = *Pair Response* |
 | 6 | **Get Dictionary Value** | **Value** for key `key` in *Pair Response*. Output = *Key* |
 | 7 | **If** | *Key* **has any value** |
-| 8 | **Save File** | Input *Key*. Turn **Ask Where To Save** off, Destination Path `Who Can Spend the Less/key.txt`, **Overwrite If File Exists** on |
+| 8 | **Save File** | Input *Key*, folder **Shortcuts** (the default). Expand ▸ turn **Ask Where To Save** off, Subpath / Destination Path `Who Can Spend the Less/key.txt`, **Overwrite If File Exists** on |
 | 9 | **Get Dictionary Value** | key `message` in *Pair Response* |
 | 10 | **Show Alert** | Title `Connected`, message = the value from step 9. Turn **Show Cancel Button** off |
 | 11 | **Otherwise** | (of the If from step 7) |
