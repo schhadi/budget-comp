@@ -60,6 +60,7 @@ export async function POST(request: Request) {
         occurredOn,
         status: "pending",
         confidence: t.confidence,
+        source: "screenshot",
         notes: [t.notes, t.date ? null : "Date not visible, defaulted to today", fx.converted ? null : "FX rate unavailable, stored 1:1"].filter(Boolean).join(" · ") || null,
       });
     }

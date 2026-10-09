@@ -15,6 +15,7 @@ export interface ReviewTx {
   occurredOn: string;
   confidence: number | null;
   notes: string | null;
+  source?: "screenshot" | "manual" | "apple_pay" | null;
   screenshotUrl: string | null;
 }
 
@@ -25,6 +26,8 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
   );
   const [showImage, setShowImage] = useState(false);
   const lowConfidence = (tx.confidence ?? 1) < 0.6;
+  const applePay = tx.source === "apple_pay";
+  const amountMissing = applePay && tx.amountMinor <= 0;
 
   if (state?.ok) {
     return (
@@ -47,13 +50,24 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
             <img src={tx.screenshotUrl} alt="screenshot" className="w-16 h-16 rounded-lg object-cover bg-card-2 border border-border" />
           </button>
         ) : (
-          <div className="w-16 h-16 rounded-lg bg-card-2 flex items-center justify-center text-2xl">🧾</div>
+          <div className="w-16 h-16 rounded-lg bg-card-2 flex items-center justify-center text-2xl">{applePay ? "📲" : "🧾"}</div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`pill ${lowConfidence ? "text-warn border-warn/40" : ""}`}>
-              {lowConfidence ? "⚠️ double check" : "AI read"} · {Math.round((tx.confidence ?? 0) * 100)}%
-            </span>
+            {applePay ? (
+              <>
+                <span className="pill">📲 Apple Pay</span>
+                {amountMissing ? (
+                  <span className="pill text-warn border-warn/40">⚠️ add the amount</span>
+                ) : lowConfidence ? (
+                  <span className="pill text-warn border-warn/40">⚠️ check the category</span>
+                ) : null}
+              </>
+            ) : (
+              <span className={`pill ${lowConfidence ? "text-warn border-warn/40" : ""}`}>
+                {lowConfidence ? "⚠️ double check" : "AI read"} · {Math.round((tx.confidence ?? 0) * 100)}%
+              </span>
+            )}
           </div>
           {tx.notes && <p className="text-xs text-muted mt-1">{tx.notes}</p>}
         </div>
@@ -67,7 +81,14 @@ export function ReviewCard({ tx, leagueCurrency }: { tx: ReviewTx; leagueCurrenc
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label">Amount</label>
-          <input name="amount" inputMode="decimal" className="input" defaultValue={fromMinor(tx.amountMinor, tx.currency).toFixed(2)} required />
+          <input
+            name="amount"
+            inputMode="decimal"
+            className="input"
+            defaultValue={amountMissing ? "" : fromMinor(tx.amountMinor, tx.currency).toFixed(2)}
+            placeholder={amountMissing ? "Check your bank app" : undefined}
+            required
+          />
         </div>
         <div>
           <label className="label">Currency</label>
