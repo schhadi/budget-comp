@@ -19,6 +19,17 @@ export function apiKeyHint(key: string) {
 }
 
 /**
+ * Replace the user's key (one per user) and return the new plaintext, which is handed over exactly
+ * once: to the settings page for manual setup, or to the phone during one-tap pairing.
+ */
+export async function rotateApiKey(userId: string, label?: string) {
+  const key = generateApiKey();
+  await db.delete(apiKeys).where(eq(apiKeys.userId, userId));
+  await db.insert(apiKeys).values({ userId, keyHash: hashApiKey(key), hint: apiKeyHint(key), ...(label ? { label } : {}) });
+  return key;
+}
+
+/**
  * Pull the key out of an incoming request. Accepted, in order:
  * `Authorization: Bearer <key>`, an `X-Api-Key` header, or a `key` field in the body.
  */
