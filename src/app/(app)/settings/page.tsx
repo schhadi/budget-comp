@@ -1,7 +1,7 @@
 import { count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { db } from "@/db";
-import { memberships } from "@/db/schema";
+import { apiKeys, memberships } from "@/db/schema";
 import { listFriends } from "@/actions/friends";
 import { signOut } from "@/auth";
 import { Avatar } from "@/components/Avatar";
@@ -14,6 +14,7 @@ export default async function SettingsPage() {
   const me = await requireUser();
   const friends = await listFriends(me.id);
   const [{ leagueCount }] = await db.select({ leagueCount: count() }).from(memberships).where(eq(memberships.userId, me.id));
+  const applePayKey = await db.query.apiKeys.findFirst({ where: eq(apiKeys.userId, me.id) });
 
   return (
     <div className="rise flex flex-col">
@@ -28,6 +29,9 @@ export default async function SettingsPage() {
 
       <SectionHead label="Email notifications" className="pt-[22px]" />
       <NotificationPrefs reminderEmails={me.reminderEmails} recapEmails={me.recapEmails} />
+
+      <SectionHead label="Logging" className="pt-[22px]" />
+      <NavRow href="/settings/apple-pay" icon="contactless" label="Apple Pay auto-log" value={applePayKey ? "On" : "Set up"} last />
 
       <SectionHead label="People" className="pt-[22px]" />
       <NavRow href="/friends" icon="group" label="Friends" count={friends.length} />
@@ -50,12 +54,12 @@ export default async function SettingsPage() {
   );
 }
 
-function NavRow({ href, icon, label, count, last = false }: { href: string; icon: string; label: string; count: number; last?: boolean }) {
+function NavRow({ href, icon, label, count, value, last = false }: { href: string; icon: string; label: string; count?: number; value?: string; last?: boolean }) {
   return (
     <Link href={href} className={`flex min-h-14 items-center gap-3 border-t border-line px-4 py-3 ${last ? "border-b" : ""}`}>
       <Icon name={icon} className="text-ink2" />
       <span className="flex-1 text-[15px] font-medium">{label}</span>
-      <span className="text-[13px] text-muted">{count}</span>
+      <span className="text-[13px] text-muted">{value ?? count}</span>
       <Icon name="chevron_right" className="text-muted" />
     </Link>
   );

@@ -154,7 +154,7 @@ export default async function LeagueBoard({ params, searchParams }: { params: Pr
         const cat = categoryInfo(tx.category);
         const mine = tx.userId === user.id;
         const chs = openChallenges.filter((c) => c.ch.transactionId === tx.id);
-        const meta = [mine ? "You" : (u.name ?? "Someone").split(" ")[0], formatRelativeDay(tx.occurredOn, today), cat.short, excluded.has(tx.category) ? "not counted" : null]
+        const meta = [mine ? "You" : (u.name ?? "Someone").split(" ")[0], formatRelativeDay(tx.occurredOn, today), cat.short, tx.source === "apple_pay" ? "Apple Pay" : null, excluded.has(tx.category) ? "not counted" : null]
           .filter(Boolean)
           .join(" · ");
         return (

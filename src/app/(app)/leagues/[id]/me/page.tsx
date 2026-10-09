@@ -127,6 +127,7 @@ export default async function MePage({ params }: { params: Promise<{ id: string 
         const meta = [
           formatDay(tx.occurredOn, { weekday: "short", day: "numeric", month: "short" }),
           c.label,
+          tx.source === "apple_pay" ? "Apple Pay" : null,
           excluded.has(tx.category) ? "not counted" : null,
           tx.currency !== league.currency ? formatMoney(tx.amountMinor, tx.currency) : null,
         ]
