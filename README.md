@@ -14,7 +14,7 @@ Built with Next.js (App Router), Neon Postgres + Drizzle, Auth.js (Google), Verc
 - **Challenges**: league mates can flag a dodgy entry; the owner of the entry (or the league owner) rules on it.
 - **Badges**: spent the least, big spender, logged every day, no takeaways, monk mode.
 - Manual entries for cash, multi-currency with automatic conversion to the league currency.
-- **Apple Pay auto-log**: an iPhone Shortcut posts every Apple Pay tap (amount, merchant, card) straight to your Review tab. Set it up from Settings → Apple Pay auto-log.
+- **Apple Pay auto-log**: every Apple Pay tap (amount, merchant, card) lands on your Review tab via an iPhone Shortcut. Two taps to set up from Settings → Apple Pay auto-log, no keys to copy.
 
 ## Setup
 
@@ -66,16 +66,17 @@ Vercel sends `CRON_SECRET` automatically once you add it as an environment varia
 
 ## Apple Pay auto-log (iPhone Shortcut)
 
-Apple doesn't expose Wallet transactions to apps, but iOS 17's Shortcuts app has a **Transaction** automation trigger that fires whenever you pay with a card in Wallet and hands over the merchant, amount and card. The app turns that into a pending entry, so the amount is already filled in and you only tap Confirm.
+Apple doesn't expose Wallet transactions to apps, but the Shortcuts app's **Wallet** automation trigger (called **Transaction** on iOS 17 and 18) fires on every Apple Pay tap with the merchant, amount and card. The app turns that into a pending entry with the amount already filled in; you only tap Confirm.
 
-1. In the app go to **Settings → Apple Pay auto-log** and generate a key. It's shown once.
-2. On the iPhone: **Shortcuts → Automation → + → Transaction**, any card, *Run Immediately*, then **New Blank Automation**.
-3. Add **Get Contents of URL** pointing at `https://<your-domain>/api/ingest/apple-pay`, method POST, header `Authorization: Bearer <key>`, JSON body with `merchant`, `amount` and `card` taken from *Shortcut Input*. The settings page walks through every tap.
-4. Run the automation once by hand: the endpoint answers *"Connected as …"*. Then tap to pay.
+**For each person** it's two taps and one automation, nothing to copy: **Settings → Apple Pay auto-log → Get the shortcut** (adds the shared shortcut from an iCloud link), **Connect this iPhone** (opens the shortcut with a one-time token; it fetches a key and keeps it on the phone), then a Wallet automation that runs the shortcut on every tap. The page walks through the automation step by step.
+
+**For whoever runs the app, once:** build the shared shortcut on an iPhone, copy its iCloud link and set `APPLE_PAY_SHORTCUT_URL` (plus `APPLE_PAY_SHORTCUT_NAME` if you named it differently). The full recipe, with a test plan and an optional shorter mode, is in [docs/apple-pay-shortcut.md](docs/apple-pay-shortcut.md). Until it's set, the page shows the longer build-it-yourself instructions, which keep working as a fallback behind "Prefer to build the automation yourself?".
+
+How pairing works: the settings page mints a signed 15-minute token (HMAC with `AUTH_SECRET`) into a `shortcuts://run-shortcut?name=…&input=text&text=<token>` link. The shortcut posts it to `POST /api/ingest/apple-pay/pair` together with the phone's name, gets a fresh key back and saves it to `iCloud Drive/Shortcuts/Who Can Spend the Less/key.txt`. The database keeps only a hash; a token is refused once a key newer than it exists, so a link can't be replayed; the page shows which phone is connected and when it last logged a tap.
 
 Entries land on the **Review** tab of every league you're in, tagged 📲, with the category guessed from the merchant name (well-known UK brands by keyword, everything else by one short call to the parser model). Nothing counts until confirmed, same as a screenshot.
 
-What the endpoint accepts: `POST /api/ingest/apple-pay` with JSON, form or query fields `merchant`, `amount` (a number or text such as `£4.50`, `4,50 €`, `GBP 12`), optional `card`, `currency`, `date` (YYYY-MM-DD), `category`, `league` (id or name to log in one league only). The key goes in `Authorization: Bearer …`, `X-Api-Key`, or a `key` field. `GET` with the key returns the connection check. Identical entries within two minutes are dropped because Shortcuts occasionally fires twice; a blank merchant or zero amount is kept and flagged ⚠️ on Review so nothing is silently lost; a request with neither is treated as a test and logs nothing.
+What the endpoint accepts: `POST /api/ingest/apple-pay` with JSON, form or query fields `merchant`, `amount` (a number or text such as `£4.50`, `4,50 €`, `GBP 12`), optional `card`, `currency`, `date` (YYYY-MM-DD), `category`, `league` (id or name to log in one league only). The shared shortcut sends `text` instead: the automation's Text action with merchant, amount and card on three lines, which the server splits (explicit fields win when both are present). The key goes in `Authorization: Bearer …`, `X-Api-Key`, or a `key` field. `GET` with the key returns the connection check. Identical entries within two minutes are dropped because Shortcuts occasionally fires twice; a blank merchant or zero amount is kept and flagged ⚠️ on Review so nothing is silently lost; a request with neither is treated as a test and logs nothing.
 
 Limits: only Apple Pay payments trigger it (not physical card taps, transfers or direct debits), the amount is the authorisation at the tap, and the automation lives on each person's phone. Open Banking would cover everything but needs each friend to grant a hobby app read access to their bank; see the plan for that trade-off.
 
